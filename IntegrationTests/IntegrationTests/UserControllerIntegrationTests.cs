@@ -13,7 +13,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ItegrationTests
+namespace Tests.IntegrationTests
 {
     public class UserControllerIntegrationTests
     {
