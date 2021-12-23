@@ -18,7 +18,7 @@ namespace IntegrationTests
     public class UserControllerTests
     {
         private HttpClient Client;
-        private List<User> DB_UserList;
+        private List<User> DB_UserList = new List<User>();
 
 
 
@@ -44,13 +44,11 @@ namespace IntegrationTests
 
                     DbContext.Database.EnsureDeleted();
 
-                    DB_UserList = new List<User>();
-
                     for (int i = 0; i < 5; i++)
                     {
-                        var User = new User(Guid.NewGuid(), $"TestName{i}", $"TestPassword{i}");
-                        DbContext.Add(User);
-                        DB_UserList.Add(User);
+                        User NewUser = new User(Guid.NewGuid(), $"TestName{i}", $"TestPassword{i}");
+                        DbContext.Add(NewUser);
+                        DB_UserList.Add(NewUser);
                     }
 
                     DB_UserList.Sort(delegate (User F, User S)
@@ -76,6 +74,8 @@ namespace IntegrationTests
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
+            Assert.NotNull(responseContent);
+
             List<UserDto> UserList = JsonConvert.DeserializeObject<List<UserDto>>(responseContent);
 
             Assert.NotNull(UserList);
@@ -93,6 +93,8 @@ namespace IntegrationTests
                 Assert.True(response.StatusCode == HttpStatusCode.OK);
 
                 var responseContent = await response.Content.ReadAsStringAsync();
+
+                Assert.NotNull(responseContent);
 
                 UserDto User = JsonConvert.DeserializeObject<UserDto>(responseContent);
 
@@ -131,9 +133,11 @@ namespace IntegrationTests
 
             var response = await Client.PostAsync($"/api/User/", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.Created);
+            Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
+
+            Assert.NotNull(responseContent);
 
             UserDto User = JsonConvert.DeserializeObject<UserDto>(responseContent);
 
@@ -167,11 +171,11 @@ namespace IntegrationTests
 
             var response = await Client.PostAsync($"/api/User/", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Name is required"));
+            Assert.Contains("Name is required", responseContent);
         }
 
         [Fact]
@@ -187,11 +191,11 @@ namespace IntegrationTests
 
             var response = await Client.PostAsync($"/api/User/", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password is required"));
+            Assert.Contains("Password is required", responseContent);
         }
 
         [Fact]
@@ -207,11 +211,11 @@ namespace IntegrationTests
 
             var response = await Client.PostAsync($"/api/User/", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password must be at least 8 characters long"));
+            Assert.Contains("Password must be at least 8 characters long", responseContent);
         }
 
         [Fact]
@@ -227,11 +231,11 @@ namespace IntegrationTests
 
             var response = await Client.PostAsync($"/api/User/", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password must contain an uppercase letter"));
+            Assert.Contains("Password must contain an uppercase letter", responseContent);
         }
 
         [Fact]
@@ -247,11 +251,11 @@ namespace IntegrationTests
 
             var response = await Client.PostAsync($"/api/User/", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password must contain an lowercase letter"));
+            Assert.Contains("Password must contain an lowercase letter", responseContent);
         }
 
         [Fact]
@@ -267,11 +271,11 @@ namespace IntegrationTests
 
             var response = await Client.PostAsync($"/api/User/", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password must contain a digit"));
+            Assert.Contains("Password must contain a digit", responseContent);
         }
 
         [Fact]
@@ -280,7 +284,7 @@ namespace IntegrationTests
             User UserForDelete = DB_UserList.First();
             var response = await Client.DeleteAsync($"/api/User/{UserForDelete.id}");
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             DB_UserList.Remove(UserForDelete);
 
@@ -295,7 +299,7 @@ namespace IntegrationTests
         {
             var response = await Client.DeleteAsync($"/api/User/incorrect");
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -303,7 +307,7 @@ namespace IntegrationTests
         {
             var response = await Client.DeleteAsync($"/api/User/{Guid.NewGuid()}");
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
 
         [Fact]
@@ -321,7 +325,7 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{User.id}", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.OK);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             User.name = UserForUpdate.name;
             User.password = UserForUpdate.password;
@@ -346,7 +350,7 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/incorrect", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
         }
@@ -366,7 +370,7 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{UserId}", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
         }
@@ -386,11 +390,11 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{User.id}", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Name is required"));
+            Assert.Contains("Name is required", responseContent);
         }
 
         [Fact]
@@ -408,11 +412,11 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{User.id}", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password is required"));
+            Assert.Contains("Password is required", responseContent);
         }
 
         [Fact]
@@ -430,11 +434,11 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{User.id}", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password must be at least 8 characters long"));
+            Assert.Contains("Password must be at least 8 characters long", responseContent);
         }
 
         [Fact]
@@ -452,11 +456,11 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{User.id}", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password must contain an uppercase letter"));
+            Assert.Contains("Password must contain an uppercase letter", responseContent);
         }
 
         [Fact]
@@ -474,11 +478,11 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{User.id}", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password must contain an lowercase letter"));
+            Assert.Contains("Password must contain an lowercase letter", responseContent);
         }
 
         [Fact]
@@ -496,11 +500,11 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{User.id}", stringContent);
 
-            Assert.Equal(response.StatusCode, HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.True(responseContent.Contains("Password must contain a digit"));
+            Assert.Contains("Password must contain a digit", responseContent);
         }
 
 
