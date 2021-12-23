@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <RootNamespace>INTEGRATION_TESTS</RootNamespace>
+    <RootNamespace>ItegrationTests</RootNamespace>
     <Nullable>enable</Nullable>
 
     <IsPackable>false</IsPackable>
@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CRUD NET CORE REST API SQL\RestAPI.csproj" />
+    <ProjectReference Include="..\RestAPI\RestAPI.csproj" />
   </ItemGroup>
 
 </Project>

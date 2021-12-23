@@ -1,4 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using RestApi.DbContexts;
+using RestApi.Interfaces;
+using RestApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,9 +11,9 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
-builder.Services.AddDbContext<ProjectRestApi.DbContexts.UserDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DB"), sqlServerOptionsAction: sqlOptions => sqlOptions.EnableRetryOnFailure()));
+builder.Services.AddDbContext<UserDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("DB"), sqlServerOptionsAction: sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
-builder.Services.AddScoped<ProjectRestApi.Interfaces.IUserDbService, ProjectRestApi.Services.UserDbService>();
+builder.Services.AddScoped<IUserDbService, UserDbService>();
 
 var app = builder.Build();
 
