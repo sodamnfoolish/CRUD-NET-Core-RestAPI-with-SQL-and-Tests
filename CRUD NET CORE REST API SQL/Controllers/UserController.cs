@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using ProjectRestApi.Interfaces;
-using ProjectRestApi.Entities;
-using ProjectRestApi.Dtos;
+using RestApi.Interfaces;
+using RestApi.Entities;
+using RestApi.Dtos;
 
-namespace ProjectRestApi.Controllers
+namespace RestApi.Controllers
 {
     [Route("/api/[controller]")]
     [ApiController]

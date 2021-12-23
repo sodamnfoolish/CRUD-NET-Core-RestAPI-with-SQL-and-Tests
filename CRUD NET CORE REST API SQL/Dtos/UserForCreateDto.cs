@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ProjectRestApi.Dtos
+namespace RestApi.Dtos
 {
     public class UserForCreateDto : IValidatableObject
     {

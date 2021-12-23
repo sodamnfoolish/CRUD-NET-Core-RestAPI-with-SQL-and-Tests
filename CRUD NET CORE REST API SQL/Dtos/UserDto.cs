@@ -1,4 +1,4 @@
-﻿namespace ProjectRestApi.Dtos
+﻿namespace RestApi.Dtos
 {
     public class UserDto
     {

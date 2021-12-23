@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CRUD NET CORE REST API SQL\CRUD NET CORE REST API SQL.csproj" />
+    <ProjectReference Include="..\CRUD NET CORE REST API SQL\RestAPI.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,9 +1,9 @@
 ﻿using AutoMapper;
-using ProjectRestApi.Entities;
-using ProjectRestApi.Dtos;
+using RestApi.Entities;
+using RestApi.Dtos;
 
 
-namespace ProjectRestApi.Profiles
+namespace RestApi.Profiles
 {
     public class UserControllerMapperProfile : Profile
     {

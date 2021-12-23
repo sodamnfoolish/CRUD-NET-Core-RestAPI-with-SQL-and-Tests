@@ -1,6 +1,6 @@
-﻿using ProjectRestApi.Entities;
+﻿using RestApi.Entities;
 
-namespace ProjectRestApi.Interfaces
+namespace RestApi.Interfaces
 {
     public interface IUserDbService
     {

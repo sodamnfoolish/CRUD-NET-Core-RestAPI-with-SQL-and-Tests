@@ -1,9 +1,9 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using ProjectRestApi.DbContexts;
-using ProjectRestApi.Entities;
-using ProjectRestApi.Interfaces;
+using RestApi.DbContexts;
+using RestApi.Entities;
+using RestApi.Interfaces;
 
-namespace ProjectRestApi.Services
+namespace RestApi.Services
 {
     public class UserDbService : IUserDbService
     {

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ProjectRestApi.Entities
+namespace RestApi.Entities
 {
     public class User
     {
