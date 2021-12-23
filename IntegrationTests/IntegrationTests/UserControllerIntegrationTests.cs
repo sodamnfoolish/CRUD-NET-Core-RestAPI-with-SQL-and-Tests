@@ -13,16 +13,16 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ItegrationTests.IntegrationTests
+namespace ItegrationTests
 {
-    public class UserControllerTests
+    public class UserControllerIntegrationTests
     {
         private HttpClient client;
         private List<User> dbUserList = new List<User>();
 
 
 
-        public UserControllerTests()
+        public UserControllerIntegrationTests()
         {
             var webApp = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             {
