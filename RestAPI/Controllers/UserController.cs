@@ -27,7 +27,9 @@ namespace RestApi.Controllers
         public async Task<IActionResult> GetAll()
         {
             List<User> UserList = await UserDbService.GetAll();
+
             List<UserDto> MappedUserList = Mapper.Map<List<UserDto>>(UserList);
+
             return Ok(MappedUserList);
         }
 
@@ -37,8 +39,12 @@ namespace RestApi.Controllers
         public async Task<IActionResult> GetById(Guid id)
         {
             User User = await UserDbService.GetById(id);
+
+            if (User == null) return NotFound();
+
             UserDto MappedUser = Mapper.Map<UserDto>(User);
-            return MappedUser != null ? Ok(MappedUser) : BadRequest();
+
+            return Ok(MappedUser);
         }
 
 
@@ -47,8 +53,12 @@ namespace RestApi.Controllers
         public async Task<IActionResult> Create([FromBody] UserForCreateDto User)
         {
             User CreatedUser = await UserDbService.Create(Mapper.Map<User>(User));
+
+            if (CreatedUser == null) return BadRequest();
+
             UserDto MappedCreatedUser = Mapper.Map<UserDto>(CreatedUser);
-            return MappedCreatedUser != null ? CreatedAtRoute("GetById", new { id = MappedCreatedUser.id }, MappedCreatedUser) : BadRequest();
+
+            return CreatedAtRoute("GetById", new { id = MappedCreatedUser.id }, MappedCreatedUser);
         }
 
 
@@ -56,17 +66,28 @@ namespace RestApi.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            bool IsDeleted = await UserDbService.Delete(id);
+            User User = await UserDbService.GetById(id);
+
+            if (User == null) return NotFound();
+
+            bool IsDeleted = await UserDbService.Delete(User);
+
             return IsDeleted == true ? Ok() : BadRequest();
         }
 
 
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(Guid id, [FromBody] UserForUpdateDto User)
+        public async Task<IActionResult> Update(Guid id, [FromBody] UserForUpdateDto NewUser)
         {
-            User MappedUser = Mapper.Map<User>(User);
-            bool IsUpdated = await UserDbService.Update(id, MappedUser);
+            User User = await UserDbService.GetById(id);
+
+            if (User == null) return NotFound();
+
+            User MappedNewUser = Mapper.Map<User>(NewUser);
+
+            bool IsUpdated = await UserDbService.Update(id, MappedNewUser);
+
             return IsUpdated == true ? Ok() : BadRequest();
         }
     }

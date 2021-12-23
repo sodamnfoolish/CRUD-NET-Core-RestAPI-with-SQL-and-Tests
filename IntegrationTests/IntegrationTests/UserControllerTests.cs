@@ -70,7 +70,7 @@ namespace IntegrationTests
         {
             var response = await Client.GetAsync($"/api/User");
 
-            Assert.True(response.StatusCode == HttpStatusCode.OK);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -90,7 +90,7 @@ namespace IntegrationTests
             {
                 var response = await Client.GetAsync($"/api/User/{DB_User.id}");
 
-                Assert.True(response.StatusCode == HttpStatusCode.OK);
+                Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
                 var responseContent = await response.Content.ReadAsStringAsync();
 
@@ -117,7 +117,7 @@ namespace IntegrationTests
         {
             var response = await Client.GetAsync($"/api/User/{Guid.NewGuid()}");
 
-            Assert.True(response.StatusCode == HttpStatusCode.BadRequest);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
         [Fact]
@@ -307,7 +307,7 @@ namespace IntegrationTests
         {
             var response = await Client.DeleteAsync($"/api/User/{Guid.NewGuid()}");
 
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
 
         [Fact]
@@ -370,7 +370,7 @@ namespace IntegrationTests
 
             var response = await Client.PutAsync($"/api/User/{UserId}", stringContent);
 
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
         }

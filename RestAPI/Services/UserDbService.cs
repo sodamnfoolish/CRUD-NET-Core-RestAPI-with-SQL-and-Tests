@@ -34,7 +34,9 @@ namespace RestApi.Services
 
         public async Task<User> GetById(Guid id)
         {
-            return await UserDbContext.Users.FindAsync(id);
+            User User = await UserDbContext.Users.FindAsync(id);
+
+            return User;
         }
 
 
@@ -45,16 +47,16 @@ namespace RestApi.Services
 
             UserDbContext.Users.Add(User);
 
-            return await UserDbContext.SaveChangesAsync() == 0 ? null : User;
+            int IsSaved = await UserDbContext.SaveChangesAsync();
+
+            return IsSaved == 0 ? null : User;
         }
 
 
 
-        public async Task<bool> Delete(Guid id)
+        public async Task<bool> Delete(User User)
         {
-            if (await this.GetById(id) == null) return false;
-
-            UserDbContext.Users.Remove(await this.GetById(id));
+            UserDbContext.Users.Remove(User);
 
             var IsDeleted = await UserDbContext.SaveChangesAsync();
 
