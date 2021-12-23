@@ -7,78 +7,76 @@ namespace RestApi.Services
 {
     public class UserDbService : IUserDbService
     {
-        public UserDbContext UserDbContext;
+        public UserDbContext userDbContext;
 
 
 
-        public UserDbService(UserDbContext UserDbContext)
+        public UserDbService(UserDbContext _userDbContext)
         {
-            this.UserDbContext = UserDbContext;
+            this.userDbContext = _userDbContext;
         }
 
 
 
         public async Task<List<User>> GetAll()
         {
-            List <User> UserList = await UserDbContext.Users.ToListAsync();
+            List<User> userList = await userDbContext.Users.ToListAsync();
 
-            UserList.Sort(delegate(User First, User Second)
+            userList.Sort(delegate(User _firstUser, User _secondUser)
             {
-                return First.id.CompareTo(Second.id);
+                return _firstUser.id.CompareTo(_secondUser.id);
             });
 
-            return UserList;
+            return userList;
         }
 
 
 
-        public async Task<User> GetById(Guid id)
+        public async Task<User> GetById(Guid _id)
         {
-            User User = await UserDbContext.Users.FindAsync(id);
+            User user = await userDbContext.Users.FindAsync(_id);
 
-            return User;
+            return user;
         }
 
 
 
-        public async Task<User> Create(User User)
+        public async Task<User> Create(User _userForCreate)
         {
-            User.id = Guid.NewGuid();
+            _userForCreate.id = Guid.NewGuid();
 
-            UserDbContext.Users.Add(User);
+            userDbContext.Users.Add(_userForCreate);
 
-            int IsSaved = await UserDbContext.SaveChangesAsync();
+            int isSaved = await userDbContext.SaveChangesAsync();
 
-            return IsSaved == 0 ? null : User;
+            return isSaved == 0 ? null : _userForCreate;
         }
 
 
 
-        public async Task<bool> Delete(User User)
+        public async Task<bool> Delete(User _userForDelete)
         {
-            UserDbContext.Users.Remove(User);
+            userDbContext.Users.Remove(_userForDelete);
 
-            var IsDeleted = await UserDbContext.SaveChangesAsync();
+            var isDeleted = await userDbContext.SaveChangesAsync();
 
-            return IsDeleted == 0 ? false : true;
+            return isDeleted == 0 ? false : true;
         }
 
 
 
-        public async Task<bool> Update(Guid id, User NewUser)
+        public async Task<bool> Update(Guid _id, User _userForUpdate)
         {
-            if (await this.GetById(id) == null) return false;
+            var user = await userDbContext.Users.FindAsync(_id);
 
-            var OldUser = await UserDbContext.Users.FindAsync(id);
+            user.name = _userForUpdate.name;
+            user.password = _userForUpdate.password;
 
-            OldUser.name = NewUser.name;
-            OldUser.password = NewUser.password;
+            userDbContext.Entry(user).State = EntityState.Modified; 
 
-            UserDbContext.Entry(OldUser).State = EntityState.Modified; 
+            var isUpdated = await userDbContext.SaveChangesAsync();
 
-            var IsUpdated = await UserDbContext.SaveChangesAsync();
-
-            return IsUpdated == 0 ? false : true;
+            return isUpdated == 0 ? false : true;
         }
     }
 }
