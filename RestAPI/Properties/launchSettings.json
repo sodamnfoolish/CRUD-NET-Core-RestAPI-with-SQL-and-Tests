@@ -9,7 +9,7 @@
     }
   },
   "profiles": {
-    "CRUD_NET_CORE_REST_API_SQL": {
+    "Project": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": false,
