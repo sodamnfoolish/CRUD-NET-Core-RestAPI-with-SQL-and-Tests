@@ -4,10 +4,10 @@ namespace ProjectRestApi.Dtos
 {
     public class UserForCreateDto : IValidatableObject
     {
-        [Required, MinLength(1)]
+        [Required(ErrorMessage = "Name is required")]
         public string name { get; set; }
 
-        [Required, MinLength(8), MaxLength(32)]
+        [Required(ErrorMessage = "Password is required"), MinLength(8, ErrorMessage = "Password must be at least 8 characters long")]
         public string password { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

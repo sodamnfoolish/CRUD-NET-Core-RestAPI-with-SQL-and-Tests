@@ -11,6 +11,7 @@ namespace ProjectRestApi.Entities
 
         public string password { get; set; }
 
+        public User() { }
         public User(Guid id, string name, string password)
         {
             this.id = id;
