@@ -8,14 +8,14 @@ namespace RestApi.Controllers
 {
     [Route("/api/[controller]")]
     [ApiController]
-    public class UsersController : ControllerBase
+    public class UserController : ControllerBase
     {
         private readonly IUserDbService userDbService;
         private readonly IMapper mapper;
 
 
 
-        public UsersController(IUserDbService _userDbService, IMapper _mapper)
+        public UserController(IUserDbService _userDbService, IMapper _mapper)
         {
             this.userDbService = _userDbService;
             this.mapper = _mapper;
@@ -35,7 +35,7 @@ namespace RestApi.Controllers
 
      
 
-        [HttpGet("{_id}", Name = "GetById")]
+        [HttpGet("{_id}")]
         public async Task<IActionResult> GetById(Guid _id)
         {
             User user = await userDbService.GetById(_id);
@@ -52,13 +52,15 @@ namespace RestApi.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] UserForCreateDto _userForCreate)
         {
-            User createdUser = await userDbService.Create(mapper.Map<User>(_userForCreate));
+            User mappedUserForCreate = mapper.Map<User>(_userForCreate);
+
+            User createdUser = await userDbService.Create(mappedUserForCreate);
 
             if (createdUser == null) return BadRequest();
 
             UserDto mappedCreatedUser = mapper.Map<UserDto>(createdUser);
 
-            return CreatedAtRoute("GetById", new { _id = mappedCreatedUser.id }, mappedCreatedUser);
+            return Created("", mappedCreatedUser);
         }
 
 

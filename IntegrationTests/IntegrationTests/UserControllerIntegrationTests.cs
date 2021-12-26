@@ -13,17 +13,19 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Tests.IntegrationTests
+namespace IntegrationTests
 {
     public class UserControllerIntegrationTests
     {
         private HttpClient client;
-        private List<User> dbUserList = new List<User>();
+        private List<User> dbUserList;
 
 
 
         public UserControllerIntegrationTests()
         {
+            dbUserList = new List<User>();
+
             var webApp = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             {
                 builder.ConfigureServices(services =>
@@ -62,7 +64,7 @@ namespace Tests.IntegrationTests
         [Fact]
         public async void GetAll_Ok()
         {
-            var response = await client.GetAsync($"/api/Users");
+            var response = await client.GetAsync($"/api/User");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -82,7 +84,7 @@ namespace Tests.IntegrationTests
         {
             foreach (var dbUser in dbUserList)
             {
-                var response = await client.GetAsync($"/api/Users/{dbUser.id}");
+                var response = await client.GetAsync($"/api/User/{dbUser.id}");
 
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -101,7 +103,7 @@ namespace Tests.IntegrationTests
         [Fact]
         public async void GetById_InvalidId_Incorrect()
         {
-            var response = await client.GetAsync($"/api/Users/incorrect");
+            var response = await client.GetAsync($"/api/User/incorrect");
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -109,7 +111,7 @@ namespace Tests.IntegrationTests
         [Fact]
         public async void GetById_InvalidId_NonExistent()
         {
-            var response = await client.GetAsync($"/api/Users/{Guid.NewGuid()}");
+            var response = await client.GetAsync($"/api/User/{Guid.NewGuid()}");
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
@@ -125,7 +127,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/Users/", stringContent);
+            var response = await client.PostAsync($"/api/User/", stringContent);
 
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
@@ -164,7 +166,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/Users/", stringContent);
+            var response = await client.PostAsync($"/api/User/", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -184,7 +186,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/Users/", stringContent);
+            var response = await client.PostAsync($"/api/User/", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -204,7 +206,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/Users/", stringContent);
+            var response = await client.PostAsync($"/api/User/", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -224,7 +226,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/Users/", stringContent);
+            var response = await client.PostAsync($"/api/User/", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -244,7 +246,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/Users/", stringContent);
+            var response = await client.PostAsync($"/api/User/", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -264,7 +266,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/Users/", stringContent);
+            var response = await client.PostAsync($"/api/User/", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -278,7 +280,7 @@ namespace Tests.IntegrationTests
         {
             User userForDelete = dbUserList.First();
 
-            var response = await client.DeleteAsync($"/api/Users/{userForDelete.id}");
+            var response = await client.DeleteAsync($"/api/User/{userForDelete.id}");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -293,7 +295,7 @@ namespace Tests.IntegrationTests
         [Fact]
         public async void Delete_InvalidId_Incorrect()
         {
-            var response = await client.DeleteAsync($"/api/Users/incorrect");
+            var response = await client.DeleteAsync($"/api/User/incorrect");
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         }
@@ -301,7 +303,7 @@ namespace Tests.IntegrationTests
         [Fact]
         public async void Delete_InvalidId_NonExistent()
         {
-            var response = await client.DeleteAsync($"/api/Users/{Guid.NewGuid()}");
+            var response = await client.DeleteAsync($"/api/User/{Guid.NewGuid()}");
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         }
@@ -319,7 +321,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/{dbUser.id}", stringContent);
+            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -344,7 +346,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/incorrect", stringContent);
+            var response = await client.PutAsync($"/api/User/incorrect", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -364,7 +366,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/{userId}", stringContent);
+            var response = await client.PutAsync($"/api/User/{userId}", stringContent);
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
@@ -384,7 +386,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/{dbUser.id}", stringContent);
+            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -406,7 +408,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/{dbUser.id}", stringContent);
+            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -428,7 +430,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/{dbUser.id}", stringContent);
+            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -450,7 +452,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/{dbUser.id}", stringContent);
+            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -472,7 +474,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/{dbUser.id}", stringContent);
+            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -494,7 +496,7 @@ namespace Tests.IntegrationTests
 
             var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/Users/{dbUser.id}", stringContent);
+            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
