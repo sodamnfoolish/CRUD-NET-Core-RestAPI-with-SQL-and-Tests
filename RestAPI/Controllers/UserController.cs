@@ -10,15 +10,15 @@ namespace RestApi.Controllers
     [ApiController]
     public class UserController : ControllerBase
     {
-        private readonly IUserDbService userDbService;
-        private readonly IMapper mapper;
+        private readonly IUserDbService _userDbService;
+        private readonly IMapper _mapper;
 
 
 
-        public UserController(IUserDbService _userDbService, IMapper _mapper)
+        public UserController(IUserDbService userDbService, IMapper mapper)
         {
-            this.userDbService = _userDbService;
-            this.mapper = _mapper;
+            this._userDbService = userDbService;
+            this._mapper = mapper;
         }
 
         
@@ -26,71 +26,85 @@ namespace RestApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            List<User> userList = await userDbService.GetAll();
+            var userList = await _userDbService.GetAll();
 
-            List<UserDto> mappedUserList = mapper.Map<List<UserDto>>(userList);
+            var mappedUserList = _mapper.Map<List<UserDto>>(userList);
 
             return Ok(mappedUserList);
         }
 
-     
 
-        [HttpGet("{_id}")]
-        public async Task<IActionResult> GetById(Guid _id)
+
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] UserForCreateDto userForCreate)
         {
-            User user = await userDbService.GetById(_id);
+            var user = new User
+            {
+                id = Guid.NewGuid(),
+                name = userForCreate.name,
+                password = userForCreate.password,
+            };
 
-            if (user == null) return NotFound();
+            var createdUser = await _userDbService.Create(user);
 
-            UserDto mappedUser = mapper.Map<UserDto>(user);
+            if (createdUser == null) return StatusCode(StatusCodes.Status500InternalServerError);
+
+            var mappedCreatedUser = _mapper.Map<UserDto>(createdUser);
+
+            return CreatedAtAction(nameof(GetById), new { id = mappedCreatedUser.id }, mappedCreatedUser);
+        }
+
+
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var user = await _userDbService.GetById(id);
+
+            if (user == null) return NotFound($"Cannot find User with {id} id.");
+
+            var mappedUser = _mapper.Map<UserDto>(user);
 
             return Ok(mappedUser);
         }
 
 
 
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] UserForCreateDto _userForCreate)
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
         {
-            User mappedUserForCreate = mapper.Map<User>(_userForCreate);
+            var user = await _userDbService.GetById(id);
 
-            User createdUser = await userDbService.Create(mappedUserForCreate);
+            if (user == null) return NotFound($"Cannot find User with {id} id.");
 
-            if (createdUser == null) return BadRequest();
+            var deletedUser = await _userDbService.Delete(user);
 
-            UserDto mappedCreatedUser = mapper.Map<UserDto>(createdUser);
+            if (deletedUser == null) return StatusCode(StatusCodes.Status500InternalServerError);
 
-            return Created("", mappedCreatedUser);
+            var mappedDeletedUser = _mapper.Map<UserDto>(deletedUser);
+
+            return Ok(mappedDeletedUser);
         }
 
 
 
-        [HttpDelete("{_id}")]
-        public async Task<IActionResult> Delete(Guid _id)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, [FromBody] UserForUpdateDto userForUpdate)
         {
-            User user = await userDbService.GetById(_id);
+            var user = await _userDbService.GetById(id);
 
-            if (user == null) return NotFound();
+            if (user == null) return NotFound($"Cannot find User with {id} id.");
 
-            bool isDeleted = await userDbService.Delete(user);
+            user.name = userForUpdate.name;
+            user.password = userForUpdate.password;
 
-            return isDeleted == true ? Ok() : BadRequest();
-        }
+            var updatedUser = await _userDbService.Update(user);
 
+            if (updatedUser == null) return StatusCode(StatusCodes.Status500InternalServerError);
 
+            var mappedUpdatedUser = _mapper.Map<UserDto>(updatedUser);
 
-        [HttpPut("{_id}")]
-        public async Task<IActionResult> Update(Guid _id, [FromBody] UserForUpdateDto _userForUpdate)
-        {
-            User user = await userDbService.GetById(_id);
-
-            if (user == null) return NotFound();
-
-            User mappedUserForUpdate = mapper.Map<User>(_userForUpdate);
-
-            bool isUpdated = await userDbService.Update(_id, mappedUserForUpdate);
-
-            return isUpdated == true ? Ok() : BadRequest();
+            return Ok(mappedUpdatedUser);
         }
     }
 }

@@ -12,19 +12,20 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace IntegrationTests
 {
     public class UserControllerIntegrationTests
     {
-        private HttpClient client;
-        private List<User> dbUserList;
+        private readonly HttpClient _client;
+        private readonly List<User> _dbUserList;
 
 
 
         public UserControllerIntegrationTests()
         {
-            dbUserList = new List<User>();
+            _dbUserList = new List<User>();
 
             var webApp = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             {
@@ -42,21 +43,34 @@ namespace IntegrationTests
 
                     for (int i = 0; i < 5; i++)
                     {
-                        User user = new User(Guid.NewGuid(), $"TestName{i}", $"TestPassword{i}");
-                        dbContext.Add(user);
-                        dbUserList.Add(user);
+                        var userForDbContext = new User()
+                        {
+                            id = Guid.NewGuid(),
+                            name = $"TestName{i}",
+                            password = $"TestPassword{i}",
+                        };
+
+                        var userForDbUserList = new User()
+                        {
+                            id = userForDbContext.id,
+                            name = userForDbContext.name,
+                            password = userForDbContext.password,
+                        };
+
+                        dbContext.Add(userForDbContext);
+                        _dbUserList.Add(userForDbUserList);
                     }
 
-                    dbUserList.Sort(delegate (User _firstUser, User _secondUser)
+                    _dbUserList.Sort(delegate (User firstUser, User secondUser)
                     {
-                        return _firstUser.id.CompareTo(_secondUser.id);
+                        return firstUser.id.CompareTo(secondUser.id);
                     });
 
                     dbContext.SaveChanges();
                 });
             });
 
-            client = webApp.CreateClient();
+            _client = webApp.CreateClient();
         }
 
 
@@ -64,7 +78,7 @@ namespace IntegrationTests
         [Fact]
         public async void GetAll_Ok()
         {
-            var response = await client.GetAsync($"/api/User");
+            var response = await _client.GetAsync("/api/User");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -72,19 +86,21 @@ namespace IntegrationTests
 
             Assert.NotNull(responseContent);
 
-            List<UserDto> userList = JsonConvert.DeserializeObject<List<UserDto>>(responseContent);
+            var userList = JsonConvert.DeserializeObject<List<UserDto>>(responseContent);
 
             Assert.NotNull(userList);
+
             Assert.NotEmpty(userList);
-            Assert.True(Equal(dbUserList, userList));
+
+            Assert.True(Equal(_dbUserList, userList));
         }
 
         [Fact]
         public async void GetById_Ok()
         {
-            foreach (var dbUser in dbUserList)
+            foreach (var dbUser in _dbUserList)
             {
-                var response = await client.GetAsync($"/api/User/{dbUser.id}");
+                var response = await _client.GetAsync($"/api/User/{dbUser.id}");
 
                 Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -92,42 +108,60 @@ namespace IntegrationTests
 
                 Assert.NotNull(responseContent);
 
-                UserDto user = JsonConvert.DeserializeObject<UserDto>(responseContent);
+                var user = JsonConvert.DeserializeObject<UserDto>(responseContent);
 
                 Assert.NotNull(user);
 
                 Assert.True(Equal(dbUser, user));
             }
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void GetById_InvalidId_Incorrect()
         {
-            var response = await client.GetAsync($"/api/User/incorrect");
+            var userId = "incorrect";
+
+            var response = await _client.GetAsync($"/api/User/{userId}");
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"The value '{userId}' is not valid.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void GetById_InvalidId_NonExistent()
         {
-            var response = await client.GetAsync($"/api/User/{Guid.NewGuid()}");
+            var userId = Guid.NewGuid();
+
+            var response = await _client.GetAsync($"/api/User/{userId}");
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"Cannot find User with {userId} id.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Create_Created()
         {
-            UserForCreateDto userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto()
             {
                 name = "CreatedName1",
                 password = "CreatedPassword1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/User/", stringContent);
+            var response = await _client.PostAsync("/api/User", requestContent);
 
             Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
@@ -135,389 +169,472 @@ namespace IntegrationTests
 
             Assert.NotNull(responseContent);
 
-            UserDto user = JsonConvert.DeserializeObject<UserDto>(responseContent);
+            var user = JsonConvert.DeserializeObject<UserDto>(responseContent);
 
             Assert.NotNull(user);
+
             Assert.Equal(userForCreate.name, user.name);
+
             Assert.Equal(userForCreate.password, user.password);
 
-            dbUserList.Add(
-                new User()
-                {
-                    id = user.id,
-                    name = user.name,
-                    password = user.password,
-                });
-
-            dbUserList.Sort(delegate (User _firstUser, User _secondUser)
+            _dbUserList.Add(new User()
             {
-                return _firstUser.id.CompareTo(_secondUser.id);
+                id = user.id,
+                name = user.name,
+                password = user.password,
             });
+
+            _dbUserList.Sort(delegate (User firstUser, User secondUser)
+            {
+                return firstUser.id.CompareTo(secondUser.id);
+            });
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Create_InvalidName_IsEmpty()
         {
-            UserForCreateDto userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto()
             {
                 name = "",
                 password = "CreatedPassword1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/User/", stringContent);
+            var response = await _client.PostAsync("/api/User", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Name is required", responseContent);
+            Assert.Contains("Name is required.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Create_InvalidPassword_IsEmpty()
         {
-            UserForCreateDto userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto()
             {
                 name = "CreatedName",
                 password = "",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/User/", stringContent);
+            var response = await _client.PostAsync("/api/User", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password is required", responseContent);
+            Assert.Contains("Password is required.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Create_InvalidPassword_LessThanRequiredLength()
         {
-            UserForCreateDto userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto()
             {
                 name = "CreatedName",
                 password = "TestP1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/User/", stringContent);
+            var response = await _client.PostAsync("/api/User", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password must be at least 8 characters long", responseContent);
+            Assert.Contains("Password must be at least 8 characters long.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Create_InvalidPassword_NoUpperCaseLetters()
         {
-            UserForCreateDto userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto()
             {
                 name = "CreatedName",
                 password = "testpassword1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/User/", stringContent);
+            var response = await _client.PostAsync("/api/User", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password must contain an uppercase letter", responseContent);
+            Assert.Contains("Password must contain an uppercase letter.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Create_InvalidPassword_NoLowerCaseLetters()
         {
-            UserForCreateDto userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto()
             {
                 name = "CreatedName",
                 password = "TESTPASSWORD1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/User/", stringContent);
+            var response = await _client.PostAsync("/api/User", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password must contain an lowercase letter", responseContent);
+            Assert.Contains("Password must contain an lowercase letter.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Create_InvalidPassword_NoDigits()
         {
-            UserForCreateDto userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto()
             {
                 name = "CreatedName",
                 password = "TestPassword",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForCreate), Encoding.UTF8, "application/json");
 
-            var response = await client.PostAsync($"/api/User/", stringContent);
+            var response = await _client.PostAsync("/api/User", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password must contain a digit", responseContent);
+            Assert.Contains("Password must contain a digit.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Delete_Deleted()
         {
-            User userForDelete = dbUserList.First();
+            var userForDelete = _dbUserList.First();
 
-            var response = await client.DeleteAsync($"/api/User/{userForDelete.id}");
+            var response = await _client.DeleteAsync($"/api/User/{userForDelete.id}");
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-            dbUserList.Remove(userForDelete);
+            var responseContent = await response.Content.ReadAsStringAsync();
 
-            dbUserList.Sort(delegate (User _firstUser, User _secondUser)
+            Assert.NotNull(responseContent);
+
+            var user = JsonConvert.DeserializeObject<UserDto>(responseContent);
+
+            Assert.NotNull(user);
+
+            Assert.True(Equal(userForDelete, user));
+
+            _dbUserList.Remove(userForDelete);
+
+            _dbUserList.Sort(delegate (User firstUser, User secondUser)
             {
-                return _firstUser.id.CompareTo(_secondUser.id);
+                return firstUser.id.CompareTo(secondUser.id);
             });
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Delete_InvalidId_Incorrect()
         {
-            var response = await client.DeleteAsync($"/api/User/incorrect");
+            var userId = "incorrect";
+
+            var response = await _client.DeleteAsync($"/api/User/{userId}");
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"The value '{userId}' is not valid.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Delete_InvalidId_NonExistent()
         {
-            var response = await client.DeleteAsync($"/api/User/{Guid.NewGuid()}");
+            var userId = Guid.NewGuid();
+
+            var response = await _client.DeleteAsync($"/api/User/{userId}");
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"Cannot find User with {userId} id.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_Updated()
         {
-            User dbUser = dbUserList.First();
+            var dbUser = _dbUserList.First();
 
-            UserForCreateDto userForUpdate = new UserForCreateDto()
+            var userForUpdate = new UserForCreateDto
             {
                 name = "UpdatedName1",
                 password = "UpdatedPassword1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var userShouldBe = new User
+            {
+                id = dbUser.id,
+                name = userForUpdate.name,
+                password = userForUpdate.password,
+            };
 
-            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+
+            var response = await _client.PutAsync($"/api/User/{dbUser.id}", requestContent);
 
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            Assert.NotNull(responseContent);
+
+            var user = JsonConvert.DeserializeObject<UserDto>(responseContent);
+
+            Assert.NotNull(user);
+
+            Assert.True(Equal(userShouldBe, user));
 
             dbUser.name = userForUpdate.name;
             dbUser.password = userForUpdate.password;
 
-            dbUserList.Sort(delegate (User _firstUser, User _secondUser)
+            _dbUserList.Sort(delegate (User firstUser, User secondUser)
             {
-                return _firstUser.id.CompareTo(_secondUser.id);
+                return firstUser.id.CompareTo(secondUser.id);
             });
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_InvalidId_Incorrect()
         {
+            var userId = "incorrect";
 
-            UserForUpdateDto userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto()
             {
                 name = "UpdateName1",
                 password = "UpdatePassword1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/User/incorrect", stringContent);
+            var response = await _client.PutAsync($"/api/User/{userId}", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"The value '{userId}' is not valid.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_InvalidId_NonExistent()
         {
-            Guid userId = Guid.NewGuid();
+            var userId = Guid.NewGuid();
 
-            UserForUpdateDto userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto()
             {
                 name = "UpdateName1",
                 password = "UpdatePassword1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/User/{userId}", stringContent);
+            var response = await _client.PutAsync($"/api/User/{userId}", requestContent);
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
+
+            Assert.Contains($"Cannot find User with {userId} id.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_InvalidName_IsEmpty()
         {
-            User dbUser = dbUserList.First();
+            var dbUser = _dbUserList.First();
 
-            UserForUpdateDto userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto()
             {
                 name = "",
                 password = "CreatedPassword1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
+            var response = await _client.PutAsync($"/api/User/{dbUser.id}", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Name is required", responseContent);
+            Assert.Contains("Name is required.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_InvalidPassword_IsEmpty()
         {
-            User dbUser = dbUserList.First();
+            var dbUser = _dbUserList.First();
 
-            UserForUpdateDto userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto()
             {
                 name = "CreatedName",
                 password = "",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
+            var response = await _client.PutAsync($"/api/User/{dbUser.id}", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password is required", responseContent);
+            Assert.Contains("Password is required.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_InvalidPassword_LessThanRequiredLength()
         {
-            User dbUser = dbUserList.First();
+            var dbUser = _dbUserList.First();
 
-            UserForUpdateDto userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto()
             {
                 name = "CreatedName",
                 password = "TestP1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
+            var response = await _client.PutAsync($"/api/User/{dbUser.id}", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password must be at least 8 characters long", responseContent);
+            Assert.Contains("Password must be at least 8 characters long.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_InvalidPassword_NoUpperCaseLetters()
         {
-            User dbUser = dbUserList.First();
+            var dbUser = _dbUserList.First();
 
-            UserForUpdateDto userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto()
             {
                 name = "CreatedName",
                 password = "testpassword1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
+            var response = await _client.PutAsync($"/api/User/{dbUser.id}", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password must contain an uppercase letter", responseContent);
+            Assert.Contains("Password must contain an uppercase letter.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_InvalidPassword_NoLowerCaseLetters()
         {
-            User dbUser = dbUserList.First();
+            var dbUser = _dbUserList.First();
 
-            UserForUpdateDto userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto()
             {
                 name = "CreatedName",
                 password = "TESTPASSWORD1",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
+            var response = await _client.PutAsync($"/api/User/{dbUser.id}", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password must contain an lowercase letter", responseContent);
+            Assert.Contains("Password must contain an lowercase letter.", responseContent);
+
+            GetAll_Ok();
         }
 
         [Fact]
         public async void Update_InvalidPassword_NoDigits()
         {
-            User dbUser = dbUserList.First();
+            var dbUser = _dbUserList.First();
 
-            UserForUpdateDto userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto()
             {
                 name = "CreatedName",
                 password = "TestPassword",
             };
 
-            var stringContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
+            var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await client.PutAsync($"/api/User/{dbUser.id}", stringContent);
+            var response = await _client.PutAsync($"/api/User/{dbUser.id}", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains("Password must contain a digit", responseContent);
+            Assert.Contains("Password must contain a digit.", responseContent);
+
+            GetAll_Ok();
         }
 
 
 
-        private bool Equal(User _firstUser, UserDto _secondUser)
+        private bool Equal(User user, UserDto userDto)
         {
-            return _firstUser.id == _secondUser.id && _firstUser.name == _secondUser.name && _firstUser.password == _secondUser.password;
+            return user.id == userDto.id && user.name == userDto.name && user.password == userDto.password;
         }
 
-        private bool Equal(List<User> _firstUserList, List<UserDto> _secondUserList)
+        private bool Equal(List<User> userList, List<UserDto> userDtoList)
         {
-            if (_firstUserList.Count != _secondUserList.Count) return false;
+            if (userList.Count != userDtoList.Count) return false;
 
-            for (int i = 0; i < _firstUserList.Count; i++)
-                if (!Equal(_firstUserList[i], _secondUserList[i])) return false;
+            for (int i = 0; i < userList.Count; i++)
+                if (!Equal(userList[i], userDtoList[i])) return false;
 
             return true;
         }

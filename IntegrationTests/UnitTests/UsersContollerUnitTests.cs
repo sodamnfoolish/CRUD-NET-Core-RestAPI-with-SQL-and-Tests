@@ -1,4 +1,4 @@
-﻿using Xunit;
+﻿/*using Xunit;
 using RestApi.Controllers;
 using AutoMapper;
 using RestApi.Interfaces;
@@ -7,12 +7,9 @@ using RestApi.Profiles;
 using Moq;
 using System.Collections.Generic;
 using System;
-using System.Threading.Tasks;
-using RestApi.Services;
 using RestApi.Dtos;
-using System.Linq;
-using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
 
 namespace UnitTests
 {
@@ -29,7 +26,12 @@ namespace UnitTests
 
             for (int i = 0; i < 5; i++)
             {
-                User user = new User(Guid.NewGuid(), $"TestName{i}", $"TestPassword{i}");
+                User user = new User()
+                {
+                    id = Guid.NewGuid(),
+                    name = $"TestName{i}",
+                    password = $"TestPassword{i}"
+                };
                 dbUserList.Add(user);
             }
 
@@ -114,51 +116,128 @@ namespace UnitTests
 
             var response = await controller.Create(userForCreate);
 
-            Assert.True(response is CreatedResult);
+            Assert.True(response is CreatedAtActionResult);
 
             var result = response as CreatedResult;
 
             Assert.True(result.Value is UserDto);
 
+            var resultUser = result.Value as UserDto;
 
+            Assert.Equal(userForCreate.name, resultUser.name);
+            Assert.Equal(userForCreate.password, resultUser.password);
         }
 
-        private bool Equal(User _firstUser, UserDto _secondUser)
+        [Fact]
+        public async void Delete_Deleted()
         {
-            return _firstUser.id == _secondUser.id && _firstUser.name == _secondUser.name && _firstUser.password == _secondUser.password;
+            var mockedUserDbService = CreateMockedUserDbService(dbUserList);
+
+            var controller = new UserController(mockedUserDbService, mapper);
+
+            var userIdForDelete = dbUserList.First().id;
+
+            var response = await controller.Delete(userIdForDelete);
+
+            Assert.True(response is OkResult);
         }
 
-        private bool Equal(List<User> _firstUserList, List<UserDto> _secondUserList)
+        [Fact]
+        public async void Delete_InvalidId_NonExistent()
         {
-            if (_firstUserList.Count != _secondUserList.Count) return false;
+            var mockedUserDbService = CreateMockedUserDbService(dbUserList);
 
-            for (int i = 0; i < _firstUserList.Count; i++)
-                if (!Equal(_firstUserList[i], _secondUserList[i])) return false;
+            var controller = new UserController(mockedUserDbService, mapper);
+
+            var userIdForDelete = Guid.NewGuid();
+
+            var response = await controller.Delete(userIdForDelete);
+
+            Assert.True(response is NotFoundResult);
+        }
+
+        [Fact]
+        public async void Update_Updated()
+        {
+            var mockedUserDbService = CreateMockedUserDbService(dbUserList);
+
+            var controller = new UserController(mockedUserDbService, mapper);
+
+            var userIdForUpdate = dbUserList.First().id;
+
+            var userForUpdate = new UserForUpdateDto()
+            {
+                name = "UpdatedName1",
+                password = "UpdatedPassword",
+            };
+
+            var response = await controller.Update(userIdForUpdate, userForUpdate);
+
+            Assert.True(response is OkResult);
+        }
+
+        [Fact]
+        public async void Update_InvalidId_NonExistent()
+        {
+            var mockedUserDbService = CreateMockedUserDbService(dbUserList);
+
+            var controller = new UserController(mockedUserDbService, mapper);
+
+            var userIdForUpdate = Guid.NewGuid();
+
+            var userForUpdate = new UserForUpdateDto()
+            {
+                name = "UpdatedName1",
+                password = "UpdatedPassword",
+            };
+
+            var response = await controller.Update(userIdForUpdate, userForUpdate);
+
+            Assert.True(response is NotFoundResult);
+        }
+
+        private bool Equal(User user, UserDto userDto)
+        {
+            return user.id == userDto.id && user.name == userDto.name && user.password == userDto.password;
+        }
+
+        private bool Equal(List<User> userList, List<UserDto> userDtoList)
+        {
+            if (userList.Count != userDtoList.Count) return false;
+
+            for (int i = 0; i < userList.Count; i++)
+                if (!Equal(userList[i], userDtoList[i])) return false;
 
             return true;
         }
 
-        private IUserDbService CreateMockedUserDbService(List<User> _userList)
+        private IUserDbService CreateMockedUserDbService(List<User> userList)
         {
             var mockUserDbService = new Mock<IUserDbService>();
 
-            mockUserDbService.Setup(service => service.GetAll()).ReturnsAsync(_userList);
+            mockUserDbService.Setup(service => service.GetAll()).ReturnsAsync(userList);
 
-            foreach (var user in _userList)
+            foreach (var user in userList)
             {
                 mockUserDbService.Setup(service => service.GetById(user.id)).ReturnsAsync(user);
             }
             mockUserDbService.Setup(service => service.Create(It.IsAny<User>())).ReturnsAsync((User user) =>
             {
-                user.id = Guid.NewGuid(); 
+                user.id = Guid.NewGuid();
                 return user;
             });
 
-            mockUserDbService.Setup(service => service.Delete(It.IsAny<User>())).ReturnsAsync(true);
+            mockUserDbService.Setup(service => service.Delete(It.IsAny<User>())).ReturnsAsync((User user) => user);
 
-            mockUserDbService.Setup(service => service.Update(It.IsAny<Guid>(), It.IsAny<User>())).ReturnsAsync(true);
+            mockUserDbService.Setup(service => service.Update(It.IsAny<User>(), It.IsAny<UserForUpdateDto>())).ReturnsAsync((User user, UserForUpdateDto userForUpdateDto) =>
+            {
+                user.name = userForUpdateDto.name;
+                user.password = userForUpdateDto.password;
+                return user;
+            });
 
             return mockUserDbService.Object;
         }
     }
 }
+*/

@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using RestApi.DbContexts;
+using RestApi.Dtos;
 using RestApi.Entities;
 using RestApi.Interfaces;
 
@@ -7,24 +8,24 @@ namespace RestApi.Services
 {
     public class UserDbService : IUserDbService
     {
-        public UserDbContext userDbContext;
+        private readonly UserDbContext _userDbContext;
 
 
 
-        public UserDbService(UserDbContext _userDbContext)
+        public UserDbService(UserDbContext userDbContext)
         {
-            this.userDbContext = _userDbContext;
+            this._userDbContext = userDbContext;
         }
 
 
 
         public async Task<List<User>> GetAll()
         {
-            List<User> userList = await userDbContext.Users.ToListAsync();
+            var userList = await _userDbContext.Users.ToListAsync();
 
-            userList.Sort(delegate(User _firstUser, User _secondUser)
+            userList.Sort(delegate(User firstUser, User secondUser)
             {
-                return _firstUser.id.CompareTo(_secondUser.id);
+                return firstUser.id.CompareTo(secondUser.id);
             });
 
             return userList;
@@ -32,51 +33,57 @@ namespace RestApi.Services
 
 
 
-        public async Task<User> GetById(Guid _id)
+        public async Task<User> Create(User user)
         {
-            User user = await userDbContext.Users.FindAsync(_id);
+            _userDbContext.Users.Add(user);
+
+            var saved = await _userDbContext.SaveChangesAsync();
+
+            if (saved == 0) return null;
 
             return user;
         }
 
 
 
-        public async Task<User> Create(User _userForCreate)
+        public async Task<User> GetById(Guid id)
         {
-            _userForCreate.id = Guid.NewGuid();
+            var user = await _userDbContext.Users.FindAsync(id);
 
-            userDbContext.Users.Add(_userForCreate);
-
-            int isSaved = await userDbContext.SaveChangesAsync();
-
-            return isSaved == 0 ? null : _userForCreate;
+            return user;
         }
 
 
 
-        public async Task<bool> Delete(User _userForDelete)
+        public async Task<User> Delete(User user)
         {
-            userDbContext.Users.Remove(_userForDelete);
+            var deletedUser = new User
+            {
+                id = user.id,
+                name = user.name,
+                password = user.password,
+            };
 
-            var isDeleted = await userDbContext.SaveChangesAsync();
+            _userDbContext.Users.Remove(user);
 
-            return isDeleted == 0 ? false : true;
+            var saved = await _userDbContext.SaveChangesAsync();
+
+            if (saved == 0) return null;
+
+            return deletedUser;
         }
 
 
 
-        public async Task<bool> Update(Guid _id, User _userForUpdate)
+        public async Task<User> Update(User user)
         {
-            var user = await userDbContext.Users.FindAsync(_id);
+            _userDbContext.Users.Update(user);
 
-            user.name = _userForUpdate.name;
-            user.password = _userForUpdate.password;
+            var saved = await _userDbContext.SaveChangesAsync();
 
-            userDbContext.Entry(user).State = EntityState.Modified; 
+            if (saved == 0) return null;
 
-            var isUpdated = await userDbContext.SaveChangesAsync();
-
-            return isUpdated == 0 ? false : true;
+            return user;
         }
     }
 }
