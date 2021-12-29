@@ -13,6 +13,8 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using RestApi.Interfaces;
+using RestApi.Services;
 
 namespace IntegrationTests
 {
@@ -43,14 +45,14 @@ namespace IntegrationTests
 
                     for (int i = 0; i < 5; i++)
                     {
-                        var userForDbContext = new User()
+                        var userForDbContext = new User
                         {
                             id = Guid.NewGuid(),
                             name = $"TestName{i}",
                             password = $"TestPassword{i}",
                         };
 
-                        var userForDbUserList = new User()
+                        var userForDbUserList = new User
                         {
                             id = userForDbContext.id,
                             name = userForDbContext.name,
@@ -121,15 +123,15 @@ namespace IntegrationTests
         [Fact]
         public async void GetById_InvalidId_Incorrect()
         {
-            var userId = "incorrect";
+            var userIdForGet = "incorrect";
 
-            var response = await _client.GetAsync($"/api/User/{userId}");
+            var response = await _client.GetAsync($"/api/User/{userIdForGet}");
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains($"The value '{userId}' is not valid.", responseContent);
+            Assert.Contains($"The value '{userIdForGet}' is not valid.", responseContent);
 
             GetAll_Ok();
         }
@@ -137,15 +139,15 @@ namespace IntegrationTests
         [Fact]
         public async void GetById_InvalidId_NonExistent()
         {
-            var userId = Guid.NewGuid();
+            var userIdForGet = Guid.NewGuid();
 
-            var response = await _client.GetAsync($"/api/User/{userId}");
+            var response = await _client.GetAsync($"/api/User/{userIdForGet}");
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains($"Cannot find User with {userId} id.", responseContent);
+            Assert.Contains($"Cannot find User with {userIdForGet} id.", responseContent);
 
             GetAll_Ok();
         }
@@ -153,7 +155,7 @@ namespace IntegrationTests
         [Fact]
         public async void Create_Created()
         {
-            var userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto
             {
                 name = "CreatedName1",
                 password = "CreatedPassword1",
@@ -177,7 +179,7 @@ namespace IntegrationTests
 
             Assert.Equal(userForCreate.password, user.password);
 
-            _dbUserList.Add(new User()
+            _dbUserList.Add(new User
             {
                 id = user.id,
                 name = user.name,
@@ -195,7 +197,7 @@ namespace IntegrationTests
         [Fact]
         public async void Create_InvalidName_IsEmpty()
         {
-            var userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto
             {
                 name = "",
                 password = "CreatedPassword1",
@@ -217,7 +219,7 @@ namespace IntegrationTests
         [Fact]
         public async void Create_InvalidPassword_IsEmpty()
         {
-            var userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto
             {
                 name = "CreatedName",
                 password = "",
@@ -239,7 +241,7 @@ namespace IntegrationTests
         [Fact]
         public async void Create_InvalidPassword_LessThanRequiredLength()
         {
-            var userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto
             {
                 name = "CreatedName",
                 password = "TestP1",
@@ -261,7 +263,7 @@ namespace IntegrationTests
         [Fact]
         public async void Create_InvalidPassword_NoUpperCaseLetters()
         {
-            var userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto
             {
                 name = "CreatedName",
                 password = "testpassword1",
@@ -283,7 +285,7 @@ namespace IntegrationTests
         [Fact]
         public async void Create_InvalidPassword_NoLowerCaseLetters()
         {
-            var userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto
             {
                 name = "CreatedName",
                 password = "TESTPASSWORD1",
@@ -305,7 +307,7 @@ namespace IntegrationTests
         [Fact]
         public async void Create_InvalidPassword_NoDigits()
         {
-            var userForCreate = new UserForCreateDto()
+            var userForCreate = new UserForCreateDto
             {
                 name = "CreatedName",
                 password = "TestPassword",
@@ -356,15 +358,15 @@ namespace IntegrationTests
         [Fact]
         public async void Delete_InvalidId_Incorrect()
         {
-            var userId = "incorrect";
+            var userIdForDelete = "incorrect";
 
-            var response = await _client.DeleteAsync($"/api/User/{userId}");
+            var response = await _client.DeleteAsync($"/api/User/{userIdForDelete}");
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains($"The value '{userId}' is not valid.", responseContent);
+            Assert.Contains($"The value '{userIdForDelete}' is not valid.", responseContent);
 
             GetAll_Ok();
         }
@@ -372,15 +374,15 @@ namespace IntegrationTests
         [Fact]
         public async void Delete_InvalidId_NonExistent()
         {
-            var userId = Guid.NewGuid();
+            var userIdForDelete = Guid.NewGuid();
 
-            var response = await _client.DeleteAsync($"/api/User/{userId}");
+            var response = await _client.DeleteAsync($"/api/User/{userIdForDelete}");
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains($"Cannot find User with {userId} id.", responseContent);
+            Assert.Contains($"Cannot find User with {userIdForDelete} id.", responseContent);
 
             GetAll_Ok();
         }
@@ -433,9 +435,9 @@ namespace IntegrationTests
         [Fact]
         public async void Update_InvalidId_Incorrect()
         {
-            var userId = "incorrect";
+            var userIdForUpdated = "incorrect";
 
-            var userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto
             {
                 name = "UpdateName1",
                 password = "UpdatePassword1",
@@ -443,13 +445,13 @@ namespace IntegrationTests
 
             var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await _client.PutAsync($"/api/User/{userId}", requestContent);
+            var response = await _client.PutAsync($"/api/User/{userIdForUpdated}", requestContent);
 
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains($"The value '{userId}' is not valid.", responseContent);
+            Assert.Contains($"The value '{userIdForUpdated}' is not valid.", responseContent);
 
             GetAll_Ok();
         }
@@ -457,9 +459,9 @@ namespace IntegrationTests
         [Fact]
         public async void Update_InvalidId_NonExistent()
         {
-            var userId = Guid.NewGuid();
+            var userIdForUpdated = Guid.NewGuid();
 
-            var userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto
             {
                 name = "UpdateName1",
                 password = "UpdatePassword1",
@@ -467,13 +469,13 @@ namespace IntegrationTests
 
             var requestContent = new StringContent(JsonConvert.SerializeObject(userForUpdate), Encoding.UTF8, "application/json");
 
-            var response = await _client.PutAsync($"/api/User/{userId}", requestContent);
+            var response = await _client.PutAsync($"/api/User/{userIdForUpdated}", requestContent);
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
             var responseContent = await response.Content.ReadAsStringAsync();
 
-            Assert.Contains($"Cannot find User with {userId} id.", responseContent);
+            Assert.Contains($"Cannot find User with {userIdForUpdated} id.", responseContent);
 
             GetAll_Ok();
         }
@@ -483,7 +485,7 @@ namespace IntegrationTests
         {
             var dbUser = _dbUserList.First();
 
-            var userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto
             {
                 name = "",
                 password = "CreatedPassword1",
@@ -507,7 +509,7 @@ namespace IntegrationTests
         {
             var dbUser = _dbUserList.First();
 
-            var userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto
             {
                 name = "CreatedName",
                 password = "",
@@ -531,7 +533,7 @@ namespace IntegrationTests
         {
             var dbUser = _dbUserList.First();
 
-            var userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto
             {
                 name = "CreatedName",
                 password = "TestP1",
@@ -555,7 +557,7 @@ namespace IntegrationTests
         {
             var dbUser = _dbUserList.First();
 
-            var userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto
             {
                 name = "CreatedName",
                 password = "testpassword1",
@@ -579,7 +581,7 @@ namespace IntegrationTests
         {
             var dbUser = _dbUserList.First();
 
-            var userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto
             {
                 name = "CreatedName",
                 password = "TESTPASSWORD1",
@@ -603,7 +605,7 @@ namespace IntegrationTests
         {
             var dbUser = _dbUserList.First();
 
-            var userForUpdate = new UserForUpdateDto()
+            var userForUpdate = new UserForUpdateDto
             {
                 name = "CreatedName",
                 password = "TestPassword",
